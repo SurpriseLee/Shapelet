@@ -99,7 +99,6 @@ public class UCRToArffConverter {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
 	}
 
 }
