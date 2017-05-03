@@ -12,11 +12,11 @@ public class WekaTest {
 	public static void main(String[] args) throws Exception {
 		// TODO Auto-generated method stub
 		Classifier m_classifier = new J48();
-        File inputFile = new File("C://Program Files//Weka-3-8//data//Adiac_TRAINAdiac_TRAIN.arff");//训练语料文件
+        File inputFile = new File("C://Program Files//Weka-3-8//data//Adiac_TRAIN.arff");//训练语料文件
         ArffLoader atf = new ArffLoader(); 
         atf.setFile(inputFile);
         Instances instancesTrain = atf.getDataSet(); // 读入训练文件    
-        inputFile = new File("C://Program Files//Weka-3-8//data//Adiac_TRAINAdiac_TRAIN.arff");//测试语料文件
+        inputFile = new File("C://Program Files//Weka-3-8//data//Adiac_TEST.arff");//测试语料文件
         atf.setFile(inputFile);          
         Instances instancesTest = atf.getDataSet(); // 读入测试文件
         instancesTest.setClassIndex(0); //设置分类属性所在行号（第一行为0号），instancesTest.numAttributes()可以取得属性总数

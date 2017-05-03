@@ -6,6 +6,8 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * @author SurpriseLee
@@ -36,7 +38,7 @@ public class UCRToArffConverter {
 			{
 				if(!file.getName().matches(".*.arff"))
 				{
-					String dstFilePath = file.getAbsolutePath() + file.getName() + ".arff";
+					String dstFilePath = file.getAbsolutePath() + ".arff";
 					File dstFile = new File(dstFilePath);
 					convert(file, dstFile);
 				}
@@ -62,43 +64,106 @@ public class UCRToArffConverter {
 			BufferedWriter fout = new BufferedWriter(new FileWriter(dstFile));
 			
 			String line = null;
-			StringBuffer strBuffer = new StringBuffer();
 			
-			boolean isHeadInfo = false;
+			StringBuffer dataBuffer = new StringBuffer();
 			
+			Set<Integer> set = new HashSet<Integer>();
+			int dimension = 0;
+			
+			dataBuffer.append("@data\r\n");
 			while ((line = fin.readLine()) != null)
 			{
 				String[] arrs = line.trim().split(",");
 				
-				// write the head information into destination file
-				if(!isHeadInfo)
-				{
-					strBuffer.append("@relation " + dstFile.getName() + "\r\n\r\n");
-					
-					for(int i = 0; i < arrs.length - 1; i++)
-					{
-						strBuffer.append("@attribute attr-" + (i + 1) + " numeric\r\n"); 
-					}
-					strBuffer.append("@attribute class numeric\r\n\r\n");
-					strBuffer.append("@data\r\n");
-					isHeadInfo = true;
-				}
+				dimension = arrs.length - 1;
 				
+				set.add(Integer.parseInt(arrs[0]));
+				dataBuffer.append("C" + arrs[0]);
 				for(int i = 1; i < arrs.length; i++)
 				{
-					strBuffer.append(arrs[i] + ",");
+					dataBuffer.append("," + arrs[i]);
 				}
-				strBuffer.append(arrs[0] + "\r\n");	
+				
+				dataBuffer.append("\r\n");
 			}
-			strBuffer.append("\r\n");
+			dataBuffer.append("\r\n");
 			
-			fout.write(strBuffer.toString()); // 写入文件
+			String headInfo = getHeadInfo(dstFile, dimension, set);
+			String convertedDataset = headInfo + "\r\n" + dataBuffer.toString();
+			fout.write(convertedDataset); // 写入文件
 			fin.close();
 			fout.close(); // 关闭时会将缓冲区的数据强制写入文件
 
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	// generate head info of the arff format file
+	public String getHeadInfo(File dstFile, int dimension, Set<Integer> set)
+	{
+		StringBuffer headBuffer = new StringBuffer();
+		headBuffer.append("@relation " + dstFile.getName() + "\r\n\r\n");
+		
+		int[] array = setToArray(set);
+		bubbleSort(array);
+		
+		System.out.println(arrayToString(array));
+				
+		headBuffer.append("@attribute class " + arrayToString(array) + "\r\n");
+		
+		for(int i = 1; i < dimension; i++)
+		{
+			headBuffer.append("@attribute attr-" + i + " numeric\r\n"); 
+		}		
+		
+		return headBuffer.toString();
+	}
+	
+	// convert set to array
+ 	public int[] setToArray(Set<Integer> set)
+	{
+		int[] array = new int[set.size()];
+		
+		int index = 0;
+		for(int element : set)
+		{
+			array[index++] = element;
+		}
+		
+		return array;
+	}
+	
+	// bubble sort 
+	public void bubbleSort(int[] array)
+	{
+		for(int i = 0; i < array.length - 1; i++)
+		{
+			for(int j = array.length - 1; j > i; j--)
+			{
+				if(array[j - 1] > array[j])
+				{
+					int temp = array[j];
+					array[j] = array[j - 1];
+					array[j - 1] = temp;
+				}				
+			}
+		}
+	}
+	
+	// convert array to string
+	public String arrayToString(int[] array)
+	{
+		StringBuffer buffer = new StringBuffer();
+		buffer.append("{C" + array[0]);
+		
+		for(int i = 1; i < array.length; i++)
+		{
+			buffer.append(", C" + array[i]);
+		}
+		
+		buffer.append("}");
+		return buffer.toString();
 	}
 
 }
