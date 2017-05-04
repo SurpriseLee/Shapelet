@@ -21,7 +21,37 @@ public class UCRToArffConverter {
 		
 		String srcFile = "C:\\Users\\SurpriseLee\\Desktop\\UCR Time Series Classification Archive\\UCR_TS_Archive_2015";
 	
-		converter.recurse(new File(srcFile));	
+		System.out.println("Deleting old *.arff files...");
+		converter.removeFile(new File(srcFile), ".arff");
+			
+		System.out.println("Converting files...");
+		converter.convert(new File(srcFile));	
+		
+		System.out.println("Fished!");;
+	}
+	
+	/**
+	 * delete files which is satisfied the filter
+	 * @param filepath
+	 * @param filter
+	 */
+	public void removeFile(File filepath, String filter)
+	{
+		if(filepath.exists() && filepath.isFile())
+		{
+			if(filepath.getName().endsWith(filter))
+			{
+				filepath.delete();
+			}
+		}
+		else if(filepath.exists() && filepath.isDirectory())
+		{
+			File[] files = filepath.listFiles();
+			for(File file : files)
+			{
+				removeFile(file, filter);
+			}
+		}
 		
 	}
 	
@@ -29,26 +59,26 @@ public class UCRToArffConverter {
 	 * 
 	 * @param filepath
 	 */
-	public void recurse(File filepath)
+	public void convert(File filepath)
 	{
-		File[] files = filepath.listFiles();
-		for(File file : files)
+		if(filepath.exists() && filepath.isFile())
 		{
-			if(file.isFile())
+			if(!filepath.getName().matches(".*.arff"))
 			{
-				if(!file.getName().matches(".*.arff"))
-				{
-					String dstFilePath = file.getAbsolutePath() + ".arff";
-					File dstFile = new File(dstFilePath);
-					convert(file, dstFile);
-				}
+				String dstFilePath = filepath.getAbsolutePath() + ".arff";
+				File dstFile = new File(dstFilePath);
+				convertSingleFile(filepath, dstFile);
 			}
-			else if(file.isDirectory())
+		}
+		else if(filepath.exists() && filepath.isDirectory())
+		{
+			File[] files = filepath.listFiles();
+			
+			for(File file : files)
 			{
-				recurse(file);
+				convert(file);				
 			}
-		}	
-		
+		}		
 	}
 	
 	
@@ -57,7 +87,7 @@ public class UCRToArffConverter {
 	 * @param srcFile
 	 * @param dstFile
 	 */
-	public void convert(File srcFile, File dstFile)
+	public void convertSingleFile(File srcFile, File dstFile)
 	{
 		try {
 			BufferedReader fin = new BufferedReader(new FileReader(srcFile));
