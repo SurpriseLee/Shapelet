@@ -1,4 +1,4 @@
-package pers.lxs.timeseries.datasetformatconverter;
+package pers.lxs.weka.classifiers.demos;
 
 import java.io.File;
 

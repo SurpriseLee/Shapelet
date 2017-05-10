@@ -1,23 +1,25 @@
-package pers.lxs.timeseries.datasetformatconverter;
+package pers.lxs.shapelet.datasetconverter;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+
+import pers.lxs.shapelet.Utils;
 
 /**
  * @author SurpriseLee
  * This code is used to convert URC data set format to Arff format which is the specified format of Weka
  */
-public class UCRToArffConverter {
+public class ArffConverter {
 	
 	public static void main(String[] args)
 	{
-		UCRToArffConverter converter = new UCRToArffConverter();
+		ArffConverter converter = new ArffConverter();
 		
 		String srcFile = "C:\\Users\\SurpriseLee\\Desktop\\UCR Time Series Classification Archive\\UCR_TS_Archive_2015";
 	
@@ -25,9 +27,32 @@ public class UCRToArffConverter {
 		converter.removeFile(new File(srcFile), ".arff");
 			
 		System.out.println("Converting files...");
-		converter.convert(new File(srcFile));	
+		converter.convert(new File(srcFile), 0);	
 		
 		System.out.println("Fished!");;
+	}
+	
+	/**
+	 * convert data set into arff format
+	 * @param relationName
+	 * @param data
+	 * @param classLabelIndex
+	 * @return
+	 */
+	public String convertToArff(String relationName, List<double[]> data, int classLabelIndex) {
+		StringBuffer arffBuffer = new StringBuffer();
+		
+		Set<Double> set = new HashSet<Double>();
+		for(int i = 0; i < data.size(); i++) {
+			set.add(data.get(i)[classLabelIndex]);
+		}
+		
+		String headInfo = getHeadInfo(relationName, data.get(0).length, classLabelIndex, set);
+		arffBuffer.append(headInfo + "\n");
+		String dataContent = getDataContent(data);
+		arffBuffer.append(dataContent + "\n");		
+		
+		return arffBuffer.toString();
 	}
 	
 	/**
@@ -59,7 +84,7 @@ public class UCRToArffConverter {
 	 * 
 	 * @param filepath
 	 */
-	public void convert(File filepath)
+	public void convert(File filepath, int classLabelIndex)
 	{
 		if(filepath.exists() && filepath.isFile())
 		{
@@ -67,7 +92,7 @@ public class UCRToArffConverter {
 			{
 				String dstFilePath = filepath.getAbsolutePath() + ".arff";
 				File dstFile = new File(dstFilePath);
-				convertSingleFile(filepath, dstFile);
+				convertSingleFile(filepath, dstFile, classLabelIndex);
 			}
 		}
 		else if(filepath.exists() && filepath.isDirectory())
@@ -76,7 +101,7 @@ public class UCRToArffConverter {
 			
 			for(File file : files)
 			{
-				convert(file);				
+				convert(file, classLabelIndex);				
 			}
 		}		
 	}
@@ -87,42 +112,31 @@ public class UCRToArffConverter {
 	 * @param srcFile
 	 * @param dstFile
 	 */
-	public void convertSingleFile(File srcFile, File dstFile)
+	private void convertSingleFile(File srcFile, File dstFile, int classLabelIndex)
 	{
 		try {
 			BufferedReader fin = new BufferedReader(new FileReader(srcFile));
-			BufferedWriter fout = new BufferedWriter(new FileWriter(dstFile));
 			
 			String line = null;
 			
-			StringBuffer dataBuffer = new StringBuffer();
+			List<double[]> data = new ArrayList<double[]>();
 			
-			Set<Integer> set = new HashSet<Integer>();
-			int dimension = 0;
-			
-			dataBuffer.append("@data\r\n");
 			while ((line = fin.readLine()) != null)
 			{
 				String[] arrs = line.trim().split(",");
 				
-				dimension = arrs.length - 1;
+				double[] sample = new double[arrs.length];
 				
-				set.add(Integer.parseInt(arrs[0]));
-				dataBuffer.append("C" + arrs[0]);
-				for(int i = 1; i < arrs.length; i++)
+				for(int i = 0; i < arrs.length; i++)
 				{
-					dataBuffer.append("," + arrs[i]);
-				}
-				
-				dataBuffer.append("\r\n");
+					sample[i] = Double.parseDouble(arrs[i]);
+				}	
+				data.add(sample);
 			}
-			dataBuffer.append("\r\n");
 			
-			String headInfo = getHeadInfo(dstFile, dimension, set);
-			String convertedDataset = headInfo + "\r\n" + dataBuffer.toString();
-			fout.write(convertedDataset); // 写入文件
+			String convertedDataset = convertToArff(dstFile.getName(), data, classLabelIndex);
 			fin.close();
-			fout.close(); // 关闭时会将缓冲区的数据强制写入文件
+			Utils.writeFile(convertedDataset, dstFile.getAbsolutePath());
 
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -130,33 +144,52 @@ public class UCRToArffConverter {
 	}
 	
 	// generate head info of the arff format file
-	public String getHeadInfo(File dstFile, int dimension, Set<Integer> set)
+	private String getHeadInfo(String relationName, int dimension, int classLabelIndex, Set<Double> set)
 	{
 		StringBuffer headBuffer = new StringBuffer();
-		headBuffer.append("@relation " + dstFile.getName() + "\r\n\r\n");
+		headBuffer.append("@relation " + relationName + "\r\n\r\n");
 		
-		int[] array = setToArray(set);
+		double[] array = setToArray(set);
 		bubbleSort(array);
 		
 		System.out.println(arrayToString(array));
-				
-		headBuffer.append("@attribute class " + arrayToString(array) + "\r\n");
-		
-		for(int i = 1; i < dimension; i++)
+					
+		for(int i = 0; i < dimension; i++)
 		{
-			headBuffer.append("@attribute attr-" + i + " numeric\r\n"); 
+			if(i == classLabelIndex) {
+				headBuffer.append("@attribute class " + arrayToString(array) + "\r\n");
+			} else {
+				headBuffer.append("@attribute attr-" + i + " numeric\r\n"); 
+			}
+			
 		}		
 		
 		return headBuffer.toString();
 	}
 	
+	private String getDataContent(List<double[]> data) {
+		StringBuffer buffer = new StringBuffer();
+		
+		buffer.append("@data\r\n");
+		for(int i = 0; i < data.size(); i++) {
+			buffer.append("" + data.get(i)[0]);
+			for(int j = 1; j < data.get(i).length; j++) {
+				buffer.append("," + data.get(i)[j]);
+			}
+			buffer.append("\n");
+		}
+				
+		return buffer.toString();
+	}
+	
+	
 	// convert set to array
- 	public int[] setToArray(Set<Integer> set)
+ 	private double[] setToArray(Set<Double> set)
 	{
-		int[] array = new int[set.size()];
+		double[] array = new double[set.size()];
 		
 		int index = 0;
-		for(int element : set)
+		for(double element : set)
 		{
 			array[index++] = element;
 		}
@@ -165,7 +198,7 @@ public class UCRToArffConverter {
 	}
 	
 	// bubble sort 
-	public void bubbleSort(int[] array)
+	private void bubbleSort(double[] array)
 	{
 		for(int i = 0; i < array.length - 1; i++)
 		{
@@ -173,7 +206,7 @@ public class UCRToArffConverter {
 			{
 				if(array[j - 1] > array[j])
 				{
-					int temp = array[j];
+					double temp = array[j];
 					array[j] = array[j - 1];
 					array[j - 1] = temp;
 				}				
@@ -182,14 +215,14 @@ public class UCRToArffConverter {
 	}
 	
 	// convert array to string
-	public String arrayToString(int[] array)
+	private String arrayToString(double[] array)
 	{
 		StringBuffer buffer = new StringBuffer();
-		buffer.append("{C" + array[0]);
+		buffer.append("{" + array[0]);
 		
 		for(int i = 1; i < array.length; i++)
 		{
-			buffer.append(", C" + array[i]);
+			buffer.append("," + array[i]);
 		}
 		
 		buffer.append("}");
