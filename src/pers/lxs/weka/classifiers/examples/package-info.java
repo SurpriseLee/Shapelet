@@ -5,4 +5,4 @@
  * @author SurpriseLee
  *
  */
-package pers.lxs.weka.classifiers.demos;
+package pers.lxs.weka.classifiers.examples;

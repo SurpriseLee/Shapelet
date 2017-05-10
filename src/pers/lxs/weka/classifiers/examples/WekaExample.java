@@ -1,4 +1,4 @@
-package pers.lxs.weka.classifiers.demos;
+package pers.lxs.weka.classifiers.examples;
 
 import java.io.File;
 
@@ -7,7 +7,7 @@ import weka.classifiers.trees.J48;
 import weka.core.Instances;
 import weka.core.converters.ArffLoader;
 
-public class WekaTest {
+public class WekaExample {
 
 	public static void main(String[] args) throws Exception {
 		// TODO Auto-generated method stub
